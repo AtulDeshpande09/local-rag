@@ -17,6 +17,7 @@ class LocalEmbeddings:
         return self.model.encode([text], show_progress_bar=False)[0].tolist()
 
 embeddings = LocalEmbeddings("./models/embeddings")
+cross_encoder = SentenceTransformer("./models/cross_encoder")
 
 
 bnb_config = BitsAndBytesConfig(
@@ -36,8 +37,6 @@ model = AutoModelForCausalLM.from_pretrained(
     device_map="auto",                # automatically assign GPU/CPU
     quantization_config=bnb_config,
 )
-
-pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
 
 
 # load vector DB
