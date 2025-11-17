@@ -67,8 +67,23 @@ if __name__ == '__main__':
     prompt_template = ChatPromptTemplate.from_template(PROMPT_TEMPLATE)
     prompt = prompt_template.format(context = context_text, query = query_text)
 
-    response = pipe(prompt)[0]["generated_text"]
+    inputs = tokenizer(prompt, return_tensorts="pt")
+
+    with torch.no_grad():
+        output_tokens = model.generate(
+            **input,
+            max_new_tokens = 300,
+            temperature = 0.3 ,
+            top_p = 0.9 ,
+            repetition_penalty = 1.1
+        )
+
+    response = tokenizer.decode(output_tokens[0], skip_special_tokens=True)
 
     sources = [doc.metadata.get("source", None) for doc, _ in results]
-    final_response = f"Response:\n{response}\n\nSources:\n{sources}"
+    final_response = f"Response:\n{response}"
     print(final_response)
+    print()
+    print("\Sources : ")
+    for doc,_ in results :
+        print("-", doc.metadata.get("source, Unknown"))
