@@ -3,7 +3,7 @@ from langchain_chroma import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline , BitsAndBytesConfig
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer , CrossEncoder
 import torch
 
 class LocalEmbeddings:
@@ -17,7 +17,7 @@ class LocalEmbeddings:
         return self.model.encode([text], show_progress_bar=False)[0].tolist()
 
 embeddings = LocalEmbeddings("./models/embeddings")
-cross_encoder = SentenceTransformer("./models/cross_encoder")
+reranker = CrossEncoder("./models/cross_enc")
 
 
 bnb_config = BitsAndBytesConfig(
@@ -38,6 +38,11 @@ model = AutoModelForCausalLM.from_pretrained(
     quantization_config=bnb_config,
 )
 
+def rerank(query,docs):
+    pairs = [(query, doc.page_content) doc, _ in docs]
+    scores = reranker.predict(pairs)
+    reranked = sorted(zip(docs,scores) , key = lambda x: x[1] , reverse=True)
+    return [d for (d,s) in reranked]
 
 # load vector DB
 
@@ -52,7 +57,7 @@ if __name__ == '__main__':
     query_text = input("Enter You Query : ")
 
     results = db.similarity_search_with_score(query_text, k=3)
-
+    reranked = rerank(query_text, results)
 
     PROMPT_TEMPLATE = """
     Answer the question based only on the following context : {context}
